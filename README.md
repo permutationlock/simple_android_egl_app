@@ -14,7 +14,7 @@ The [rawdrawandroid][1] project provides a fantastic example of how to build a n
 Android applicaiton from the command line, but it is still somewhat
 complicated. Having gone through the work of [getting my GLFW applications to compile for
 Android][2], I thought I would write out a minimal example that uses `dlopen` to load
-`libEGL.so`, creates an OpenGL ES 2.0 context, and draws a full color screen. The example
+`libEGL.so`, creates an OpenGL ES 2.0 context, and draws colors to the screen. The example
 also shows how to properly handle suspend and resume as Android applications must relinquish
 EGL contexts while suspended[^1].
 
@@ -32,8 +32,8 @@ Finally, you will need a keystore file to sign your application. Once can be cre
 by running e.g.
 ```
 keytool -genkey -v -keystore mykey.keystore -alias mykey -keyalg RSA -keysize 2048 \
-  -validity 10000 -storepass mypassword -keypass mypassword \
-  -dname "CN=example.com, OU=ID, O=Example, L=Doe, S=John, C=GB"
+    -validity 10000 -storepass mypassword -keypass mypassword \
+    -dname "CN=example.com, OU=ID, O=Example, L=Doe, S=John, C=GB"
 ```
 
 ## Building
@@ -58,15 +58,16 @@ An example build command:
 ```
 ANDROID_VERSION=30 ./pull_android_jar.sh
 ANDROID_VERSION=30 \
-  ANDROID_JAR=android-30.jar \
-  ANDROID_SDK_BUILD_TOOLS=/home/user/android-sdk/build-tools/35.0.1 \
-  ANDROID_NDK_TOOLCHAIN=/home/user/android-ndk/toolchains/llvm/prebuilt/linux-x86_64 \
-  APP_NAME=seglapp \
-  ORG_NAME=avensegl \
-  KEYSTORE_FILE=./mykey.keystore \
-  STORE_PASS=mypassword \
-  KEY_PASS=mypassword \
-  ./build.sh
+    ANDROID_JAR=android-30.jar \
+    ANDROID_SDK_BUILD_TOOLS=/home/user/android-sdk/build-tools/35.0.1 \
+    ANDROID_NDK_TOOLCHAIN=/home/user/android-ndk/toolchains/llvm/prebuilt/linux-x86_64 \
+    APP_NAME=seglapp \
+    ORG_NAME=avensegl \
+    KEYSTORE_FILE=./mykey.keystore \
+    STORE_PASS=mypassword \
+    KEY_PASS=mypassword \
+    CFLAGS="-Wall -Wextra -Wno-unused-parameter -std=c11 -O3 -g0 -s" \
+    ./build.sh
 ```
 
 ## Installing and testing
@@ -84,7 +85,7 @@ adb shell logcat
 
 To uninstall the app you can run:
 ```
-adb uninstall avensegl.seglapp # replace avnsegl and seglapp with your org and app names
+adb uninstall avensegl.seglapp # replace avensegl and seglapp with your org and app names
 ```
 
 [^1]: This may not be true with recent Android versions on some devices, but it

@@ -31,7 +31,7 @@
 
 #define SEGL_ANDROID_LOG_ID "SEGLAPP"
 
-#define TIMESTEP 32L * 1000L * 1000L
+#define TIMESTEP 16L * 1000L * 1000L
 
 #define countof(x) (sizeof(x) / (sizeof((x)[0])))
 
@@ -73,7 +73,7 @@ static SEglVtable segl_vtable_load(void) {
         __android_log_print(
             ANDROID_LOG_ERROR,
             "SEGLAP",
-            "failed to load EGL: %s",
+            "failed to load libEGL.so: %s",
             dlerror()
         );
         exit(1);
@@ -356,6 +356,7 @@ static SEglCtx segl_ctx_load(AndroidApp *app, SEglVtable *segl_vtable) {
         exit(1);
     }
 
+    // NOTE: may wish to require an 8 bit alpha channel as well
     const EGLint attribs[] = {
         EGL_SURFACE_TYPE,
         EGL_WINDOW_BIT,
@@ -366,11 +367,11 @@ static SEglCtx segl_ctx_load(AndroidApp *app, SEglVtable *segl_vtable) {
         EGL_COLOR_BUFFER_TYPE,
         EGL_RGB_BUFFER,
         EGL_RED_SIZE,
-        4,
+        8,
         EGL_GREEN_SIZE,
-        4,
+        8,
         EGL_BLUE_SIZE,
-        4,
+        8,
         EGL_NONE,
     };
     EGLConfig configs[32];
@@ -393,6 +394,7 @@ static SEglCtx segl_ctx_load(AndroidApp *app, SEglVtable *segl_vtable) {
         exit(1);
     }
 
+    // NOTE: we just select the config with the most MSAA samples from first 32
     EGLint best_i = 0;
     EGLint max_samples = 0;
     for (EGLint i = 0; i < nconfigs; i += 1) {
@@ -2223,8 +2225,10 @@ void android_main(AndroidApp *app) {
         "egl_vtable_load"
     );
     gfx.egl = segl_vtable_load();
+
     __android_log_print(ANDROID_LOG_INFO, SEGL_ANDROID_LOG_ID, "gl_vtable_load");
     gfx.gl = sgl_vtable_load(&gfx.egl);
+
     gfx.ctx = (SEglCtx){
         .display = EGL_NO_DISPLAY,
         .context = EGL_NO_CONTEXT,
@@ -2266,7 +2270,6 @@ void android_main(AndroidApp *app) {
             elapsed -= TIMESTEP;
         }
 
-        __android_log_print(ANDROID_LOG_INFO, SEGL_ANDROID_LOG_ID, "polling");
         int events;
         AndroidPollSource *source;
         while (ALooper_pollOnce(0, 0, &events, (void **)&source) >= 0) {
@@ -2280,17 +2283,11 @@ void android_main(AndroidApp *app) {
             gfx.ctx.surface == EGL_NO_SURFACE ||
             gfx.ctx.context == EGL_NO_CONTEXT
         ) {
-            __android_log_print(
-                ANDROID_LOG_INFO,
-                SEGL_ANDROID_LOG_ID,
-                "sleeping"
-            );
-            const struct timespec duration = { .tv_nsec = 16L * 1000L * 1000L };
+            const struct timespec duration = { .tv_nsec = TIMESTEP };
             nanosleep(&duration, NULL);
             continue;
         }
 
-        __android_log_print(ANDROID_LOG_INFO, SEGL_ANDROID_LOG_ID, "drawing");
         int width = ANativeWindow_getWidth(app->window);
         int height = ANativeWindow_getHeight(app->window);
 

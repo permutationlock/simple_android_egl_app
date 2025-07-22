@@ -6,8 +6,8 @@ java code (beyond the required `androidXX.jar`).
 ## Motivation
 
 I am currently using a musl libc based distro (Chimera Linux) and google does not
-distribute Android Studio for such a system. Some good sumeritan has gone through
-the work of compiling the Android SDK build tools and Android NDK for musl based
+distribute Android Studio for such a system. Some good samaritan has gone through
+the work of compiling the [Android SDK build tools][3] and [Android NDK][4] for musl based
 systems (and many other systems).
 
 The [rawdrawandroid][1] project provides a fantastic example of how to build a native
@@ -92,3 +92,5 @@ adb uninstall avensegl.seglapp # replace avnsegl and seglapp with your org and a
 
 [1]: https://github.com/cnlohr/rawdrawandroid
 [2]: https://github.com/permutationlock/libavengraph
+[3]: https://github.com/HomuHomu833/android-sdk-custom
+[4]: https://github.com/HomuHomu833/android-ndk-custom

@@ -28,8 +28,7 @@ You will also need a copy of
 `androidXX.jar` where `XX` is the target android version. A copy can be pulled from a friendly git
 repo by running `ANDROID_VERSION=XX ./pull_android_jar.sh`.
 
-Finally, you will need a keystore file to sign your application. Once can be created with `keytool`
-by running e.g.
+Finally, you will need a keystore file to sign your application. E.g. using `keytool`:
 ```
 keytool -genkey -v -keystore mykey.keystore -alias mykey -keyalg RSA -keysize 2048 \
     -validity 10000 -storepass mypassword -keypass mypassword \

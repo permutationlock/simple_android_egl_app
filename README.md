@@ -8,12 +8,12 @@ java code (beyond the required `androidXX.jar`).
 I am currently using a musl libc based distro (Chimera Linux) and google does not
 distribute Android Studio for such a system. Some good samaritan has gone through
 the work of compiling the [Android SDK build tools][3] and [Android NDK][4] for musl based
-systems (and many other systems).
+Linux systems.
 
 The [rawdrawandroid][1] project provides a fantastic example of how to build a native
 Android applicaiton from the command line, but it is still somewhat
 complicated. Having gone through the work of [getting my GLFW applications to compile for
-Android][2], I thought I would write out a minimal example that simply `dlopen`s
+Android][2], I thought I would write out a minimal example that uses `dlopen` to load
 `libEGL.so`, creates an OpenGL ES 2.0 context, and draws a full color screen. The example
 also shows how to properly handle suspend and resume as Android applications must relinquish
 EGL contexts while suspended[^1].

@@ -38,6 +38,13 @@ $ANDROID_NDK_TOOLCHAIN/bin/x86_64-linux-android$ANDROID_VERSION-clang $CFLAGS $L
 $ANDROID_SDK_BUILD_TOOLS/aapt package -f -F ./build_android/temp.apk -I $ANDROID_JAR -M ./build_android/AndroidManifest.xml -S ./build_android/apk/res -v --target-sdk-version $ANDROID_VERSION
 unzip -o ./build_android/temp.apk -d ./build_android/apk
 
+# ALTERNATIVE: since aapt is deprecated, we could also use aapt2:
+#   # build temporary apk and unzip back to directory
+#   mkdir ./build_android/compiled
+#   $ANDROID_SDK_BUILD_TOOLS/aapt2 compile ./build_android/apk/res/mipmap/icon.png -o ./build_android/compiled/
+#   $ANDROID_SDK_BUILD_TOOLS/aapt2 link -o ./build_android/temp.apk -I $ANDROID_JAR --manifest ./build_android/AndroidManifest.xml ./build_android/compiled/mipmap_icon.png.flat -v --target-sdk-version $ANDROID_VERSION
+#   unzip -o ./build_android/temp.apk -d ./build_android/apk
+
 # zip compress second temporary apk
 cd ./build_android/apk
 zip -D4r ../temp2.apk .

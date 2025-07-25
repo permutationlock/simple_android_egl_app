@@ -39,25 +39,25 @@ keytool -genkey -v -keystore mykey.keystore -alias mykey -keyalg RSA -keysize 20
 
 You will need to export the following environment variables in order to run `./build.sh`:
 
- - ANDROID_SDK_BUILD_TOOLS: path to android sdk build_tools
- - ANDROID_NDK_TOOLCHAIN: path to android ndk toolchain prebuilt sysroot
- - ANDROID_VERSION: the target android version number (must be >=22)
- - ANDROID_JAR: a path to the `android-XX.jar` file (see `pull_android_jar.sh`)
- - APP_NAME: the name of your app
- - ORG_NAME: the name of your organization
- - KEYSTORE_FILE: path to keystore file
- - STORE_PASS: keystore password
- - KEY_PASS: key password
+ - `ANDROID_SDK_BUILD_TOOLS`: path to android sdk build_tools
+ - `ANDROID_NDK_TOOLCHAIN`: path to android ndk toolchain prebuilt sysroot
+ - `ANDROID_VERSION`: the target android version number (must be >=22)
+ - `ANDROID_JAR`: a path to the `android-XX.jar` file (see `pull_android_jar.sh`)
+ - `APP_NAME`: the name of your app
+ - `ORG_NAME`: the name of your organization
+ - `KEYSTORE_FILE`: path to keystore file
+ - `STORE_PASS`: keystore password
+ - `KEY_PASS`: key password
 
 The following environment variables are optional:
- - CFLAGS: common flags to be passed to C compiler
- - LDFLAGS: common flags to be passed to the linker
+ - `CFLAGS`: common flags to be passed to C compiler
+ - `LDFLAGS`: common flags to be passed to the linker
 
 An example build command:
 ```
 ANDROID_VERSION=30 ./pull_android_jar.sh
 ANDROID_VERSION=30 \
-    ANDROID_JAR=android-30.jar \
+    ANDROID_JAR=./android-30.jar \
     ANDROID_SDK_BUILD_TOOLS=/home/user/android-sdk/build-tools/35.0.1 \
     ANDROID_NDK_TOOLCHAIN=/home/user/android-ndk/toolchains/llvm/prebuilt/linux-x86_64 \
     APP_NAME=seglapp \

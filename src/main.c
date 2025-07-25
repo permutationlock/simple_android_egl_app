@@ -2150,13 +2150,9 @@ static SGlVtable sgl_vtable_load(SEglVtable *segl_vtable) {
     return vtable;
 }
 
-typedef struct {
-    SEglVtable egl;
-    SEglCtx ctx;
-    SGlVtable gl;
-} SGfx;
-
-static SGfx gfx;
+static SEglVtable egl;
+static SEglCtx egl_ctx;
+static SGlVtable gl;
 
 static void handle_cmd(AndroidApp *app, int32_t cmd) {
     switch (cmd) {
@@ -2166,14 +2162,10 @@ static void handle_cmd(AndroidApp *app, int32_t cmd) {
                 SEGL_ANDROID_LOG_ID,
                 "APP_CMD_INIT_WINDOW"
             );
-            if (
-                gfx.ctx.display != EGL_NO_DISPLAY &&
-                gfx.ctx.surface != EGL_NO_SURFACE &&
-                gfx.ctx.context != EGL_NO_CONTEXT
-            ) {
+            if (egl_ctx.display != EGL_NO_DISPLAY) {
                 break;
             }
-            gfx.ctx = segl_ctx_load(app, &gfx.egl);
+            egl_ctx = segl_ctx_load(app, &egl);
             break;
         case APP_CMD_TERM_WINDOW:
             __android_log_print(
@@ -2181,14 +2173,10 @@ static void handle_cmd(AndroidApp *app, int32_t cmd) {
                 SEGL_ANDROID_LOG_ID,
                 "APP_CMD_TERM_WINDOW"
             );
-            if (
-                gfx.ctx.display == EGL_NO_DISPLAY &&
-                gfx.ctx.surface == EGL_NO_SURFACE &&
-                gfx.ctx.context == EGL_NO_CONTEXT
-            ) {
+            if (egl_ctx.display == EGL_NO_DISPLAY) {
                 break;
             }
-            segl_ctx_unload(&gfx.ctx, &gfx.egl);
+            segl_ctx_unload(&egl_ctx, &egl);
             break;
         case APP_CMD_DESTROY:
             __android_log_print(
@@ -2196,7 +2184,6 @@ static void handle_cmd(AndroidApp *app, int32_t cmd) {
                 SEGL_ANDROID_LOG_ID,
                 "APP_CMD_DESTROY"
             );
-            ANativeActivity_finish(app->activity);
             break;
         default:
             break;
@@ -2224,12 +2211,12 @@ void android_main(AndroidApp *app) {
         SEGL_ANDROID_LOG_ID,
         "egl_vtable_load"
     );
-    gfx.egl = segl_vtable_load();
+    egl = segl_vtable_load();
 
     __android_log_print(ANDROID_LOG_INFO, SEGL_ANDROID_LOG_ID, "gl_vtable_load");
-    gfx.gl = sgl_vtable_load(&gfx.egl);
+    gl = sgl_vtable_load(&egl);
 
-    gfx.ctx = (SEglCtx){
+    egl_ctx = (SEglCtx){
         .display = EGL_NO_DISPLAY,
         .context = EGL_NO_CONTEXT,
         .surface = EGL_NO_SURFACE,
@@ -2278,11 +2265,7 @@ void android_main(AndroidApp *app) {
             }
         }
 
-        if (
-            gfx.ctx.display == EGL_NO_DISPLAY ||
-            gfx.ctx.surface == EGL_NO_SURFACE ||
-            gfx.ctx.context == EGL_NO_CONTEXT
-        ) {
+        if (egl_ctx.display == EGL_NO_DISPLAY) {
             const struct timespec duration = { .tv_nsec = TIMESTEP };
             nanosleep(&duration, NULL);
             continue;
@@ -2291,16 +2274,15 @@ void android_main(AndroidApp *app) {
         int width = ANativeWindow_getWidth(app->window);
         int height = ANativeWindow_getHeight(app->window);
 
-        gfx.gl.Viewport(0, 0, width, height);
-
-        gfx.gl.ClearColor(
+        gl.Viewport(0, 0, width, height);
+        gl.ClearColor(
             red_flip ? 1.0f - red : red,
             green_flip ? 1.0f - green : green,
             blue_flip ? 1.0f - blue : blue,
             1.0f
         );
-        gfx.gl.Clear(GL_COLOR_BUFFER_BIT);
+        gl.Clear(GL_COLOR_BUFFER_BIT);
 
-        gfx.egl.SwapBuffers(gfx.ctx.display, gfx.ctx.surface);
+        egl.SwapBuffers(egl_ctx.display, egl_ctx.surface);
     }
 }

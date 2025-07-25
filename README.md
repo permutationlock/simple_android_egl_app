@@ -84,7 +84,7 @@ adb shell logcat
 
 To uninstall the app you can run:
 ```
-adb uninstall avensegl.seglapp # replace avensegl and seglapp with your org and app names
+adb uninstall org.avensegl.seglapp # replace avensegl and seglapp with your org and app names
 ```
 
 [^1]: This may not be true with recent Android versions on some devices, but it

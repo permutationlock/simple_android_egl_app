@@ -2241,7 +2241,7 @@ void android_main(AndroidApp *app) {
         while (elapsed >= TIMESTEP) {
             red += 0.005f;
             green += 0.006f;
-            blue += 0.007;
+            blue += 0.007f;
             if (red >= 1.0f) {
                 red -= 1.0f;
                 red_flip = !red_flip;

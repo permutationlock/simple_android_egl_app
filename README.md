@@ -20,13 +20,13 @@ EGL contexts while suspended[^1].
 
 ## Dependencies
 
-You'll also need an OpenJDK install,
-a copy of the Android SDK build tools (`aapt`, `zipalign`, `apksigner`),
-and a copy of the Android NDK toolchains.
+You'll need an [OpenJDK][5] install,
+a copy of the [Android SDK][6] command line tools (`aapt` or `aapt2`, `zipalign`, `apksigner`),
+and a copy of the [Android NDK][7] toolchains.
 
 You will also need a copy of
-`androidXX.jar` where `XX` is the target android version. A copy can be pulled from a friendly git
-repo by running `ANDROID_VERSION=XX ./pull_android_jar.sh`.
+`androidXX.jar` where `XX` is the target android version. A copy can be pulled from a [friendly git
+repo][8] by running `ANDROID_VERSION=XX ./pull_android_jar.sh`.
 
 Finally, you will need a keystore file to sign your application. E.g. using `keytool`:
 ```
@@ -71,7 +71,8 @@ ANDROID_VERSION=30 \
 
 ## Installing and testing
 
-You will need to enable USB Debugging on the test device (or use an emulator) and then install the APK with `adb`:
+You will need to enable USB Debugging on the test device (or use an emulator) and then
+install the APK with `adb`:
 
 ```
 adb install ./build_android/seglapp.apk # replace seglapp.apk with your app name
@@ -79,7 +80,7 @@ adb install ./build_android/seglapp.apk # replace seglapp.apk with your app name
 
 To view debug logs you can run:
 ```
-adb shell logcat
+adb shell logcat SEGLAPP:I *:S
 ```
 
 To uninstall the app you can run:
@@ -94,3 +95,7 @@ adb uninstall org.avensegl.seglapp # replace avensegl and seglapp with your org 
 [2]: https://github.com/permutationlock/libavengraph
 [3]: https://github.com/HomuHomu833/android-sdk-custom
 [4]: https://github.com/HomuHomu833/android-ndk-custom
+[5]: https://openjdk.org/index.html
+[6]: https://developer.android.com/studio
+[7]: https://developer.android.com/ndk/downloads
+[8]: https://github.com/Sable/android-platforms

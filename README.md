@@ -1,7 +1,8 @@
 # Simple Native Android EGL App
 
 A minimal example of building a C Android NDK app from the command line without
-java code (beyond the required `androidXX.jar`).
+java code (beyond the required `androidXX.jar`). I also wrote an
+[accompanying article][9].
 
 ## Motivation
 
@@ -99,3 +100,4 @@ adb uninstall org.avensegl.seglapp # replace avensegl and seglapp with your org 
 [6]: https://developer.android.com/studio
 [7]: https://developer.android.com/ndk/downloads
 [8]: https://github.com/Sable/android-platforms
+[9]: https://musing.permutationlock.com/android_egl/

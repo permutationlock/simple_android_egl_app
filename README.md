@@ -1,7 +1,7 @@
 # Simple Native Android EGL App
 
 A minimal example of building a C Android NDK app from the command line without
-java code (beyond the required `androidXX.jar`). I also wrote an
+java code (beyond the required `android.jar`). I also wrote an
 [accompanying article][9].
 
 ## Motivation
@@ -26,8 +26,8 @@ a copy of the [Android SDK][6] command line tools (`aapt` or `aapt2`, `zipalign`
 and a copy of the [Android NDK][7] toolchains.
 
 You will also need a copy of
-`androidXX.jar` where `XX` is the target android version. A copy can be pulled from a [friendly git
-repo][8] by running `ANDROID_VERSION=XX ./pull_android_jar.sh`.
+`android.jar` for the target android SDK version. A copy can be pulled from a
+[friendly git repo][8] by running `ANDROID_VERSION=XX ./pull_android_jar.sh`.
 
 Finally, you will need a keystore file to sign your application. E.g. using `keytool`:
 ```bash
@@ -41,7 +41,7 @@ keytool -genkey -v -keystore mykey.keystore -alias mykey -keyalg RSA -keysize 20
 You will need to export the following environment variables in order to run `./build.sh`:
 ```bash
 #     ANDROID_VERSION: the target android version number (must be >=22)
-#     ANDROID_JAR: a path to the android-XX.jar file (see pull_android_jar.sh)
+#     ANDROID_JAR: a path to the android.jar file (see pull_android_jar.sh)
 #     ANDROID_AAPT: path to android sdk aapt
 #     ANDROID_ZIPALIGN: path to android sdk zipalign
 #     ANDROID_APKSIGNER: path to android sdk apksizinger

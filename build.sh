@@ -1,6 +1,6 @@
 # required environment:
 #     ANDROID_VERSION: the target android version number (must be >=22)
-#     ANDROID_JAR: a path to the android-XX.jar file (see pull_android_jar.sh)
+#     ANDROID_JAR: a path to the android.jar file (see pull_android_jar.sh)
 #     ANDROID_AAPT: path to android sdk aapt
 # #     ANDROID_AAPT2: path to android sdk aapt2
 #     ANDROID_ZIPALIGN: path to android sdk zipalign

@@ -30,7 +30,7 @@ You will also need a copy of
 repo][8] by running `ANDROID_VERSION=XX ./pull_android_jar.sh`.
 
 Finally, you will need a keystore file to sign your application. E.g. using `keytool`:
-```
+```bash
 keytool -genkey -v -keystore mykey.keystore -alias mykey -keyalg RSA -keysize 2048 \
     -validity 10000 -storepass mypassword -keypass mypassword \
     -dname "CN=example.com, OU=ID, O=Example, L=Doe, S=John, C=GB"
@@ -39,28 +39,31 @@ keytool -genkey -v -keystore mykey.keystore -alias mykey -keyalg RSA -keysize 20
 ## Building
 
 You will need to export the following environment variables in order to run `./build.sh`:
-
- - `ANDROID_SDK_BUILD_TOOLS`: path to android sdk build_tools
- - `ANDROID_NDK_TOOLCHAIN`: path to android ndk toolchain prebuilt sysroot
- - `ANDROID_VERSION`: the target android version number (must be >=22)
- - `ANDROID_JAR`: a path to the `android-XX.jar` file (see `pull_android_jar.sh`)
- - `APP_NAME`: the name of your app
- - `ORG_NAME`: the name of your organization
- - `KEYSTORE_FILE`: path to keystore file
- - `STORE_PASS`: keystore password
- - `KEY_PASS`: key password
-
-The following environment variables are optional:
- - `CFLAGS`: common flags to be passed to C compiler
- - `LDFLAGS`: common flags to be passed to the linker
+```bash
+#     ANDROID_VERSION: the target android version number (must be >=22)
+#     ANDROID_JAR: a path to the android-XX.jar file (see pull_android_jar.sh)
+#     ANDROID_AAPT: path to android sdk aapt
+#     ANDROID_ZIPALIGN: path to android sdk zipalign
+#     ANDROID_APKSIGNER: path to android sdk apksizinger
+#     ANDROID_CLANG: path to android ndk clang
+#     APP_NAME: the name of your app
+#     ORG_NAME: the name of your organization
+#     KEYSTORE_FILE: path to keystore file
+#     STORE_PASS: keystore password
+#     KEY_PASS: key password
+#     CFLAGS: common flags to be passed to C compiler
+#     LDFLAGS: common flags to be passed to the linker
+```
 
 An example build command:
-```
+```bash
 ANDROID_VERSION=30 ./pull_android_jar.sh
 ANDROID_VERSION=30 \
     ANDROID_JAR=./android-30.jar \
-    ANDROID_SDK_BUILD_TOOLS=/home/user/android-sdk/build-tools/35.0.1 \
-    ANDROID_NDK_TOOLCHAIN=/home/user/android-ndk/toolchains/llvm/prebuilt/linux-x86_64 \
+    ANDROID_AAPT=/home/user/android-sdk/build-tools/35.0.1/aapt \
+    ANDROID_ZIPALIGN=/home/user/android-sdk/build-tools/35.0.1/zipalign \
+    ANDROID_APKSIGNER=/home/user/android-sdk/build-tools/35.0.1/apksigner \
+    ANDROID_CLANG=/home/user/android-ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang \
     APP_NAME=seglapp \
     ORG_NAME=avensegl \
     KEYSTORE_FILE=./mykey.keystore \
@@ -75,17 +78,17 @@ ANDROID_VERSION=30 \
 You will need to enable USB Debugging on the test device (or use an emulator) and then
 install the APK with `adb`:
 
-```
+```bash
 adb install ./build_android/seglapp.apk # replace seglapp.apk with your app name
 ```
 
 To view debug logs you can run:
-```
+```bash
 adb shell logcat SEGLAPP:I *:S
 ```
 
 To uninstall the app you can run:
-```
+```bash
 adb uninstall org.avensegl.seglapp # replace avensegl and seglapp with your org and app names
 ```
 

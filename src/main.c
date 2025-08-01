@@ -13,7 +13,6 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#include <assert.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -399,13 +398,11 @@ static SEglCtx segl_ctx_load(AndroidApp *app, SEglVtable *segl_vtable) {
     EGLint max_samples = 0;
     for (EGLint i = 0; i < nconfigs; i += 1) {
         EGLint samples;
-        assert(
-            segl_vtable->GetConfigAttrib(
-                segl_ctx.display,
-                configs[i],
-                EGL_SAMPLES,
-                &samples
-            )
+        segl_vtable->GetConfigAttrib(
+            segl_ctx.display,
+            configs[i],
+            EGL_SAMPLES,
+            &samples
         );
         if (samples > max_samples) {
             best_i = i;
@@ -2223,15 +2220,17 @@ void android_main(AndroidApp *app) {
     };
 
     float red = 0.66f;
-    bool red_flip = false;
     float green = 0.33f;
-    bool green_flip = false;
     float blue = 0.0f;
+
+    bool red_flip = false;
+    bool green_flip = false;
     bool blue_flip = false;
 
     int64_t elapsed = 0;
     TimeSpec last;
     clock_gettime(CLOCK_MONOTONIC, &last);
+
     for (;;) {
         TimeSpec now;
         clock_gettime(CLOCK_MONOTONIC, &now);

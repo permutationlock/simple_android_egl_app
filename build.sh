@@ -23,19 +23,19 @@ envsubst '$$ANDROID_VERSION $$APP_NAME $$ORG_NAME' < ./template/AndroidManifest.
 
 # build so for arm64
 mkdir -p ./build_android/apk/lib/arm64-v8a
-$ANDROID_CLANG --target=aarch64-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -ldl -landroid -llog -I./include/ -o ./build_android/apk/lib/arm64-v8a/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=aarch64-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/arm64-v8a/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
 
 # build so for arm32
 mkdir -p ./build_android/apk/lib/armeabi-v7a
-$ANDROID_CLANG --target=armv7a-linux-androideabi22  $CFLAGS $LDFLAGS -shared -fPIC -lm -ldl -landroid -llog -I./include/ -o ./build_android/apk/lib/armeabi-v7a/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=armv7a-linux-androideabi22  $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/armeabi-v7a/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
 
 # build so for x86
 mkdir -p ./build_android/apk/lib/x86
-$ANDROID_CLANG --target=i686-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -ldl -landroid -llog -I./include/ -o ./build_android/apk/lib/x86/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=i686-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/x86/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
 
 # build for x86_64
 mkdir -p ./build_android/apk/lib/x86_64
-$ANDROID_CLANG --target=x86_64-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -ldl -landroid -llog -I./include/ -o ./build_android/apk/lib/x86_64/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=x86_64-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/x86_64/lib$APP_NAME.so ./src/main.c ./src/android_native_app_glue.c
 
 # build temporary apk and unzip back to directory
 $ANDROID_AAPT package -f -F ./build_android/temp.apk -I $ANDROID_JAR -M ./build_android/AndroidManifest.xml -S ./build_android/apk/res -v --target-sdk-version $ANDROID_VERSION

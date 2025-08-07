@@ -5,7 +5,7 @@ writing java code. I also wrote an [accompanying article][9].
 
 ## Motivation
 
-I am currently using a musl libc based distro (Chimera Linux) and google does not
+I currently use a musl libc based distro (Chimera Linux) and Google does not
 distribute Android Studio for such a system. Luckily, a good samaritan has gone through
 the work of compiling the [Android SDK tools][3] and [Android NDK][4] into
 static binaries that will work on any Linux system.
@@ -13,8 +13,7 @@ static binaries that will work on any Linux system.
 The [rawdrawandroid][1] project provides a fantastic example of how to build a native
 Android applicaiton from the command line, but it is still somewhat
 complicated. After getting my [GLFW applications][2] to compile for
-Android, I wanted to write a tiny example that uses `dlopen` to load
-`libEGL.so`, creates an OpenGL ES 2.0 context, and draws colors to the screen.
+Android, I distilled the process down to this tiny OpenGL ES 2.0 example.
 
 ## Dependencies
 

@@ -10,7 +10,7 @@ distribute Android Studio for such a system. Luckily, a good samaritan has gone 
 the work of compiling the [Android SDK tools][3] and [Android NDK][4] into
 static binaries that will work on any Linux system.
 
-The [rawdrawandroid][1] project provides a fantastic example of how to build a native
+The [rawdraw][1] project provides a fantastic example of how to build a native
 Android applicaiton from the command line, but it is still somewhat
 complicated. After getting my [GLFW applications][2] to compile for
 Android, I distilled the process down to this tiny OpenGL ES 2.0 example.

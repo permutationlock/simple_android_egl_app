@@ -17,17 +17,21 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 
+#include <android/asset_manager.h>
 #include <android/native_window.h>
 #include <android/log.h>
 
+#include <jni.h>
+
 #include "android_native_app_glue.h"
 
-#define SEGL_ANDROID_LOG_ID "SEGLAPP"
+#define SEGL_ANDROID_LOG_ID "SEGL"
 
 #define PERIOD (int64_t)(2.0f * M_PI * 1e9f)
 
@@ -41,6 +45,10 @@ struct egl_ctx {
 };
 
 static void egl_ctx_load(struct egl_ctx *egl_ctx, struct android_app *app) {
+    if (egl_ctx->display != EGL_NO_DISPLAY) {
+        return;
+    }
+
     egl_ctx->display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     if (egl_ctx->display == EGL_NO_DISPLAY) {
         __android_log_print(
@@ -64,13 +72,20 @@ static void egl_ctx_load(struct egl_ctx *egl_ctx, struct android_app *app) {
 
     // NOTE: may wish to require an 8 bit alpha channel as well
     const EGLint attribs[] = {
-        EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-        EGL_CONFORMANT, EGL_OPENGL_ES2_BIT,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
-        EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
+        EGL_SURFACE_TYPE,
+        EGL_WINDOW_BIT,
+        EGL_CONFORMANT,
+        EGL_OPENGL_ES2_BIT,
+        EGL_RENDERABLE_TYPE,
+        EGL_OPENGL_ES2_BIT,
+        EGL_COLOR_BUFFER_TYPE,
+        EGL_RGB_BUFFER,
+        EGL_RED_SIZE,
+        8,
+        EGL_GREEN_SIZE,
+        8,
+        EGL_BLUE_SIZE,
+        8,
         EGL_NONE,
     };
     EGLConfig configs[64];
@@ -107,8 +122,10 @@ static void egl_ctx_load(struct egl_ctx *egl_ctx, struct android_app *app) {
 
     egl_ctx->config = configs[best_i];
     const EGLint context_attribs[] = {
-        EGL_CONTEXT_MAJOR_VERSION, 2,
-        EGL_CONTEXT_MINOR_VERSION, 0,
+        EGL_CONTEXT_MAJOR_VERSION,
+        2,
+        EGL_CONTEXT_MINOR_VERSION,
+        0,
         EGL_NONE,
     };
     egl_ctx->context = eglCreateContext(
@@ -198,11 +215,7 @@ static void handle_cmd(struct android_app *app, int32_t cmd) {
                 SEGL_ANDROID_LOG_ID,
                 "APP_CMD_INIT_WINDOW"
             );
-
-            if (egl_ctx.display == EGL_NO_DISPLAY) {
-                egl_ctx_load(&egl_ctx, app);
-            }
-
+            egl_ctx_load(&egl_ctx, app);
             break;
         case APP_CMD_TERM_WINDOW:
             __android_log_print(
@@ -210,11 +223,7 @@ static void handle_cmd(struct android_app *app, int32_t cmd) {
                 SEGL_ANDROID_LOG_ID,
                 "APP_CMD_TERM_WINDOW"
             );
-
-            if (egl_ctx.display != EGL_NO_DISPLAY) {
-                egl_ctx_unload(&egl_ctx);
-            }
-
+            egl_ctx_unload(&egl_ctx);
             break;
         case APP_CMD_DESTROY:
             __android_log_print(
@@ -245,6 +254,233 @@ void android_main(struct android_app *app) {
 
     app->onAppCmd = handle_cmd;
     app->onInputEvent = handle_input;
+
+    {
+        /* calling the Android Java API to enter fullscreen */
+
+        /* NOTE: JavaVM and JNIEnv are pointer types */
+        JavaVM jvm = *app->activity->vm;
+        JNIEnv *envptr = NULL;
+        jvm->AttachCurrentThread(app->activity->vm, &envptr, NULL);
+
+        JNIEnv env = *envptr;
+
+        jclass av_NativeActivity = env->FindClass(
+            envptr,
+            "android/app/NativeActivity"
+        );
+        jclass av_Window = env->FindClass(envptr, "android/view/Window");
+        jclass av_View = env->FindClass(envptr, "android/view/View");
+        jclass avwm_LayoutParams = env->FindClass(
+            envptr,
+            "android/view/WindowManager$LayoutParams"
+        );
+
+        jmethodID av_NativeActivity_getWindow = env->GetMethodID(
+            envptr,
+            av_NativeActivity,
+            "getWindow",
+            "()Landroid/view/Window;"
+        );
+        jmethodID av_Window_getDecorView = env->GetMethodID(
+            envptr,
+            av_Window,
+            "getDecorView",
+            "()Landroid/view/View;"
+        );
+        jmethodID av_Window_addFlags = env->GetMethodID(
+            envptr,
+            av_Window,
+            "addFlags",
+            "(I)V"
+        );
+        jmethodID av_View_setSystemUiVisibility = env->GetMethodID(
+            envptr,
+            av_View,
+            "setSystemUiVisibility",
+            "(I)V"
+        );
+
+        jfieldID av_View_SYSTEM_UI_FLAG_LOW_PROFILE = env->GetStaticFieldID(
+            envptr,
+            av_View,
+            "SYSTEM_UI_FLAG_LOW_PROFILE",
+            "I"
+        );
+        jfieldID av_View_SYSTEM_UI_FLAG_HIDE_NAVIGATION = env->GetStaticFieldID(
+            envptr,
+            av_View,
+            "SYSTEM_UI_FLAG_HIDE_NAVIGATION",
+            "I"
+        );
+        jfieldID av_View_SYSTEM_UI_FLAG_FULLSCREEN = env->GetStaticFieldID(
+            envptr,
+            av_View,
+            "SYSTEM_UI_FLAG_FULLSCREEN",
+            "I"
+        );
+        jfieldID av_View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY = env->GetStaticFieldID(
+            envptr,
+            av_View,
+            "SYSTEM_UI_FLAG_IMMERSIVE_STICKY",
+            "I"
+        );
+        jfieldID av_View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN = env
+            ->GetStaticFieldID(
+                envptr,
+                av_View,
+                "SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN",
+                "I"
+            );
+        jfieldID av_View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION = env
+            ->GetStaticFieldID(
+                envptr,
+                av_View,
+                "SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION",
+                "I"
+            );
+        jfieldID av_View_SYSTEM_UI_FLAG_LAYOUT_STABLE = env->GetStaticFieldID(
+            envptr,
+            av_View,
+            "SYSTEM_UI_FLAG_LAYOUT_STABLE",
+            "I"
+        );
+        jfieldID avwm_LayoutParams_FLAG_FULLSCREEN = env->GetStaticFieldID(
+            envptr,
+            avwm_LayoutParams,
+            "FLAG_FULLSCREEN",
+            "I"
+        );
+        jfieldID avwm_LayoutParams_FLAG_KEEP_SCREEN_ON = env->GetStaticFieldID(
+            envptr,
+            avwm_LayoutParams,
+            "FLAG_KEEP_SCREEN_ON",
+            "I"
+        );
+        jfieldID avwm_LayoutParams_FLAG_HARDWARE_ACCELERATED = env
+            ->GetStaticFieldID(
+                envptr,
+                avwm_LayoutParams,
+                "FLAG_HARDWARE_ACCELERATED",
+                "I"
+            );
+
+        /* Window window = getWindow(); */
+        jobject window = env->CallObjectMethod(
+            envptr,
+            app->activity->clazz,
+            av_NativeActivity_getWindow
+        );
+
+        /* View decorView = window.getDecorView(); */
+        jobject decorView = env->CallObjectMethod(
+            envptr,
+            window,
+            av_Window_getDecorView
+        );
+
+        /*
+        * decorView.setSystemUiVisibility(
+        *     View.SYSTEM_UI_FLAG_LOW_PROFILE |
+        *     View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+        *     View.SYSTEM_UI_FLAG_FULLSCREEN |
+        *     View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+        *     View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+        *     View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+        *     View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        * );
+        */
+        env->CallVoidMethod(
+            envptr,
+            decorView,
+            av_View_setSystemUiVisibility,
+            env->GetStaticIntField(
+                envptr,
+                av_View,
+                av_View_SYSTEM_UI_FLAG_LOW_PROFILE
+            ) | env->GetStaticIntField(
+                envptr,
+                av_View,
+                av_View_SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            ) | env->GetStaticIntField(
+                envptr,
+                av_View,
+                av_View_SYSTEM_UI_FLAG_FULLSCREEN
+            ) | env->GetStaticIntField(
+                envptr,
+                av_View,
+                av_View_SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            ) | env->GetStaticIntField(
+                envptr,
+                av_View,
+                av_View_SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            ) | env->GetStaticIntField(
+                envptr,
+                av_View,
+                av_View_SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            ) | env->GetStaticIntField(
+                envptr,
+                av_View,
+                av_View_SYSTEM_UI_FLAG_LAYOUT_STABLE
+            )
+        );
+
+        /*
+        * window.addFlags(
+        *     WindowManager.LayoutParams.FLAG_FULLSCREEN |
+        *     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
+        *     WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+        * );
+        */
+        env->CallVoidMethod(
+            envptr,
+            window,
+            av_Window_addFlags,
+            env->GetStaticIntField(
+                envptr,
+                avwm_LayoutParams,
+                avwm_LayoutParams_FLAG_FULLSCREEN
+            ) | env->GetStaticIntField(
+                envptr,
+                avwm_LayoutParams,
+                avwm_LayoutParams_FLAG_KEEP_SCREEN_ON
+            ) | env->GetStaticIntField(
+                envptr,
+                avwm_LayoutParams,
+                avwm_LayoutParams_FLAG_HARDWARE_ACCELERATED
+            )
+        );
+
+        jvm->DetachCurrentThread(app->activity->vm);
+    }
+
+    {
+        /* loading an asset */
+
+        AAsset *file = AAssetManager_open(
+            app->activity->assetManager,
+            "name.txt",
+            AASSET_MODE_BUFFER
+        );
+        off_t file_len = AAsset_getLength(file);
+        const char *file_buffer = AAsset_getBuffer(file);
+
+        char *str = malloc((size_t)file_len + 1);
+        memcpy(str, file_buffer, (size_t)file_len);
+        str[file_len] = 0;
+
+        __android_log_print(
+            ANDROID_LOG_INFO,
+            SEGL_ANDROID_LOG_ID,
+            "name: %s",
+            str
+        );
+
+        free(str);
+        AAsset_close(file);
+    }
+
+    /* main app loop */
 
     int64_t elapsed = 0;
     struct timespec last;

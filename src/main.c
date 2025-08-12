@@ -16,6 +16,7 @@
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -201,6 +202,56 @@ static void egl_ctx_unload(struct egl_ctx *egl_ctx) {
     egl_ctx->surface = EGL_NO_SURFACE;
 }
 
+static char *path_join(const char *p1, const char *p2) {
+    size_t p1_len = strlen(p1);
+    size_t p2_len = strlen(p2);
+
+    char *p3 = malloc(p1_len + p2_len + 2);
+    size_t p3_len = 0;
+
+    memcpy(&p3[p3_len], p1, p1_len);
+    p3_len += p1_len;
+
+    p3[p3_len++] = '/';
+
+    memcpy(&p3[p3_len], p2, p2_len);
+    p3_len += p2_len;
+
+    p3[p3_len] = '\0';
+
+    return p3;
+}
+
+struct state {
+    int64_t elapsed;
+};
+
+static void load_state(struct state *state, struct android_app *app) {
+    char *fname = path_join(app->activity->internalDataPath, "state");
+    FILE *file = fopen(fname, "r");
+    if (file != NULL) {
+        struct state last_state;
+        size_t len = fread(&last_state, sizeof(last_state), 1, file);
+        if (len) {
+            *state = last_state;
+        }
+        fclose(file);
+    }
+    free(fname);
+}
+
+static void save_state(struct state *state, struct android_app *app) {
+    char *fname = path_join(app->activity->internalDataPath, "state");
+    FILE *file = fopen(fname, "w");
+    if (file != NULL) {
+        fwrite(state, sizeof(*state), 1, file);
+        fclose(file);
+    }
+    free(fname);
+}
+
+static struct state state;
+static int running;
 static struct egl_ctx egl_ctx = {
     .display = EGL_NO_DISPLAY,
     .context = EGL_NO_CONTEXT,
@@ -209,7 +260,7 @@ static struct egl_ctx egl_ctx = {
 
 static void handle_cmd(struct android_app *app, int32_t cmd) {
     switch (cmd) {
-        case APP_CMD_INIT_WINDOW:
+        case APP_CMD_INIT_WINDOW: {
             __android_log_print(
                 ANDROID_LOG_INFO,
                 SEGL_ANDROID_LOG_ID,
@@ -217,7 +268,8 @@ static void handle_cmd(struct android_app *app, int32_t cmd) {
             );
             egl_ctx_load(&egl_ctx, app);
             break;
-        case APP_CMD_TERM_WINDOW:
+        }
+        case APP_CMD_TERM_WINDOW: {
             __android_log_print(
                 ANDROID_LOG_INFO,
                 SEGL_ANDROID_LOG_ID,
@@ -225,13 +277,27 @@ static void handle_cmd(struct android_app *app, int32_t cmd) {
             );
             egl_ctx_unload(&egl_ctx);
             break;
-        case APP_CMD_DESTROY:
+        }
+        case APP_CMD_RESUME: {
             __android_log_print(
                 ANDROID_LOG_INFO,
                 SEGL_ANDROID_LOG_ID,
-                "APP_CMD_DESTROY"
+                "APP_CMD_RESUME"
             );
+            running = 1;
+            load_state(&state, app);
             break;
+        }
+        case APP_CMD_PAUSE: {
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                SEGL_ANDROID_LOG_ID,
+                "APP_CMD_PAUSE"
+            );
+            running = 0;
+            save_state(&state, app);
+            break;
+        }
         default:
             break;
     }
@@ -256,7 +322,7 @@ void android_main(struct android_app *app) {
     app->onInputEvent = handle_input;
 
     {
-        /* calling the Android Java API to enter fullscreen */
+        /* call the Android Java API to enter fullscreen */
 
         /* NOTE: JavaVM and JNIEnv are pointer types */
         JavaVM jvm = *app->activity->vm;
@@ -455,63 +521,75 @@ void android_main(struct android_app *app) {
     }
 
     {
-        /* loading an asset */
+        /* load a text file asset */
 
         AAsset *file = AAssetManager_open(
             app->activity->assetManager,
             "name.txt",
             AASSET_MODE_BUFFER
         );
-        off_t file_len = AAsset_getLength(file);
-        const char *file_buffer = AAsset_getBuffer(file);
+        if (file != NULL) {
+            off_t file_len = AAsset_getLength(file);
+            const char *file_buffer = AAsset_getBuffer(file);
 
-        char *str = malloc((size_t)file_len + 1);
-        memcpy(str, file_buffer, (size_t)file_len);
-        str[file_len] = 0;
+            char *str = malloc((size_t)file_len + 1);
+            memcpy(str, file_buffer, (size_t)file_len);
+            str[file_len] = 0;
 
-        __android_log_print(
-            ANDROID_LOG_INFO,
-            SEGL_ANDROID_LOG_ID,
-            "name: %s",
-            str
-        );
+            __android_log_print(
+                ANDROID_LOG_INFO,
+                SEGL_ANDROID_LOG_ID,
+                "name asset: %s",
+                str
+            );
 
-        free(str);
-        AAsset_close(file);
+            free(str);
+            AAsset_close(file);
+        }
     }
 
     /* main app loop */
 
-    int64_t elapsed = 0;
     struct timespec last;
     clock_gettime(CLOCK_MONOTONIC, &last);
 
     for (;;) {
-        struct timespec now;
-        clock_gettime(CLOCK_MONOTONIC, &now);
-        elapsed += time_since(now, last);
-        last = now;
-
-        while (elapsed >= PERIOD) {
-            elapsed -= PERIOD;
-        }
-
         int events;
         struct android_poll_source *source;
+
+        while (!running) {
+            /* while paused, freeze clock and wait for next event */
+            ALooper_pollOnce(-1, 0, &events, (void **)&source);
+            if (source != NULL) {
+                source->process(app, source);
+            }
+            clock_gettime(CLOCK_MONOTONIC, &last);
+        }
+
         while (ALooper_pollOnce(0, 0, &events, (void **)&source) >= 0) {
             if (source != NULL) {
                 source->process(app, source);
             }
         }
 
+        struct timespec now;
+        clock_gettime(CLOCK_MONOTONIC, &now);
+        state.elapsed += time_since(now, last);
+        last = now;
+
+        while (state.elapsed >= PERIOD) {
+            state.elapsed -= PERIOD;
+        }
+
         if (egl_ctx.display == EGL_NO_DISPLAY) {
-            const struct timespec duration = { .tv_nsec = 32L * 1000L * 1000L };
+            /* if EGL display not loaded, wait 16ms (1 frame @ 60FPS) */
+            const struct timespec duration = { .tv_nsec = 16L * 1000L * 1000L };
             nanosleep(&duration, NULL);
         } else {
             int width = ANativeWindow_getWidth(app->window);
             int height = ANativeWindow_getHeight(app->window);
 
-            float t = (float)elapsed / 1e9f;
+            float t = (float)state.elapsed / 1e9f;
 
             glViewport(0, 0, width, height);
             glClearColor(

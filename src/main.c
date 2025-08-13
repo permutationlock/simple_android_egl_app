@@ -13,27 +13,31 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+#include <errno.h>
 #include <math.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
 
 #include <android/asset_manager.h>
-#include <android/native_window.h>
 #include <android/log.h>
+#include <android/native_window.h>
 
 #include <jni.h>
 
 #include "android_native_app_glue.h"
 
+#define STATE_FILE "state"
+#define TMP_FILE "" STATE_FILE ".tmp"
 #define SEGL_ANDROID_LOG_ID "SEGL"
-
 #define PERIOD (int64_t)(2.0f * M_PI * 1e9f)
 
 #define countof(x) (sizeof(x) / (sizeof((x)[0])))
@@ -202,52 +206,119 @@ static void egl_ctx_unload(struct egl_ctx *egl_ctx) {
     egl_ctx->surface = EGL_NO_SURFACE;
 }
 
-static char *path_join(const char *p1, const char *p2) {
-    size_t p1_len = strlen(p1);
-    size_t p2_len = strlen(p2);
-
-    char *p3 = malloc(p1_len + p2_len + 2);
-    size_t p3_len = 0;
-
-    memcpy(&p3[p3_len], p1, p1_len);
-    p3_len += p1_len;
-
-    p3[p3_len++] = '/';
-
-    memcpy(&p3[p3_len], p2, p2_len);
-    p3_len += p2_len;
-
-    p3[p3_len] = '\0';
-
-    return p3;
-}
-
 struct state {
     int64_t elapsed;
 };
 
 static void load_state(struct state *state, struct android_app *app) {
-    char *fname = path_join(app->activity->internalDataPath, "state");
-    FILE *file = fopen(fname, "r");
-    if (file != NULL) {
+    int dirfd = open(app->activity->internalDataPath, O_RDONLY);
+    if (dirfd < 0) {
+        __android_log_print(
+            ANDROID_LOG_ERROR,
+            SEGL_ANDROID_LOG_ID,
+            "failed to open internalDataPath"
+        );
+        return;
+    }
+
+    int statefd = openat(dirfd, STATE_FILE, O_RDONLY, 0);
+    if (statefd >= 0) {
         struct state last_state;
-        size_t len = fread(&last_state, sizeof(last_state), 1, file);
-        if (len) {
+        char *bytes = (char *)&last_state;
+        char *bytes_end = bytes + sizeof(last_state);
+
+        while (bytes != bytes_end) {
+            ssize_t len = read(statefd, bytes, (size_t)(bytes_end - bytes));
+            if (len < 0) {
+                if (errno == EINTR) {
+                    continue;
+                } else {
+                    break;
+                }
+            }
+
+            bytes += len;
+        }
+
+        if (bytes == bytes_end) {
             *state = last_state;
         }
-        fclose(file);
+
+        close(statefd);
     }
-    free(fname);
+
+    close(dirfd);
 }
 
+enum save_error {
+    SAVE_ERROR_NONE = 0,
+    SAVE_ERROR_DIR,
+    SAVE_ERROR_TMP,
+    SAVE_ERROR_WRITE,
+    SAVE_ERROR_SWAP,
+};
+
 static void save_state(struct state *state, struct android_app *app) {
-    char *fname = path_join(app->activity->internalDataPath, "state");
-    FILE *file = fopen(fname, "w");
-    if (file != NULL) {
-        fwrite(state, sizeof(*state), 1, file);
-        fclose(file);
+    int error = SAVE_ERROR_NONE;
+
+    int dirfd = open(app->activity->internalDataPath, O_RDONLY);
+    if (dirfd < 0) {
+        error = SAVE_ERROR_DIR;
     }
-    free(fname);
+
+    int tmpfd;
+    if (!error) {
+        /* create temp file */
+        tmpfd = openat(
+            dirfd,
+            TMP_FILE,
+            O_WRONLY | O_CREAT,
+            S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH
+        );
+        if (tmpfd < 0) {
+            error = SAVE_ERROR_TMP;
+        }
+    }
+
+    if (!error) {
+        /* save state to temp file */
+        char *bytes = (char *)state;
+        char *bytes_end = bytes + sizeof(*state);
+
+        while (bytes != bytes_end) {
+            ssize_t len = write(tmpfd, bytes, (size_t)(bytes_end - bytes));
+            if (len < 0) {
+                if (errno == EINTR) {
+                    continue;
+                } else {
+                    error = SAVE_ERROR_WRITE;
+                    break;
+                }
+            }
+
+            bytes += len;
+        }
+
+        close(tmpfd);
+    }
+
+    if (!error) {
+        /* "atomically" replace state file with temp file */
+        if (renameat(dirfd, TMP_FILE, dirfd, STATE_FILE)) {
+            error = SAVE_ERROR_SWAP;
+        }
+    }
+
+    close(dirfd);
+
+    if (error) {
+        __android_log_print(
+            ANDROID_LOG_ERROR,
+            SEGL_ANDROID_LOG_ID,
+            "failed to save state: %d",
+            (int)error
+        );
+    }
 }
 
 static struct state state;

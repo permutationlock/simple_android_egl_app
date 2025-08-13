@@ -9,8 +9,7 @@
         android:hasCode="false"
         android:label="$APP_NAME"
         android:icon="@mipmap/icon">
-    <activity android:configChanges="keyboard|keyboardHidden|orientation"
-        android:label="$APP_NAME"
+    <activity android:configChanges="orientation"
         android:name="android.app.NativeActivity"
         android:exported="true">
       <intent-filter>

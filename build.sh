@@ -19,33 +19,63 @@
 
 # initualize build directory from template
 cp -r ./template ./build_android
-envsubst '$$ANDROID_VERSION $$APP_NAME $$ORG_NAME' < ./template/AndroidManifest.xml > ./build_android/AndroidManifest.xml
+envsubst '$$ANDROID_VERSION $$APP_NAME $$ORG_NAME' \
+    < ./template/AndroidManifest.xml \
+    > ./build_android/AndroidManifest.xml
 
 # build so for arm64
 mkdir -p ./build_android/apk/lib/arm64-v8a
-$ANDROID_CLANG --target=aarch64-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/arm64-v8a/libmain.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=aarch64-linux-android22 \
+    $CFLAGS $LDFLAGS -shared -fPIC \
+    -o ./build_android/apk/lib/arm64-v8a/libmain.so \
+    ./src/main.c ./src/android_native_app_glue.c \
+    -lm -lEGL -lGLESv2 -landroid -llog
 
 # build so for arm32
 mkdir -p ./build_android/apk/lib/armeabi-v7a
-$ANDROID_CLANG --target=armv7a-linux-androideabi22  $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/armeabi-v7a/libmain.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=armv7a-linux-androideabi22 \
+    $CFLAGS $LDFLAGS -shared -fPIC \
+    -o ./build_android/apk/lib/armeabi-v7a/libmain.so \
+    ./src/main.c ./src/android_native_app_glue.c \
+    -lm -lEGL -lGLESv2 -landroid -llog
 
 # build so for x86
 mkdir -p ./build_android/apk/lib/x86
-$ANDROID_CLANG --target=i686-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/x86/libmain.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=i686-linux-android22 \
+    $CFLAGS $LDFLAGS -shared -fPIC \
+    -o ./build_android/apk/lib/x86/libmain.so \
+    ./src/main.c ./src/android_native_app_glue.c \
+    -lm -lEGL -lGLESv2 -landroid -llog
 
 # build for x86_64
 mkdir -p ./build_android/apk/lib/x86_64
-$ANDROID_CLANG --target=x86_64-linux-android22 $CFLAGS $LDFLAGS -shared -fPIC -lm -lEGL -lGLESv2 -landroid -llog -o ./build_android/apk/lib/x86_64/libmain.so ./src/main.c ./src/android_native_app_glue.c
+$ANDROID_CLANG --target=x86_64-linux-android22 \
+    $CFLAGS $LDFLAGS -shared -fPIC \
+    -o ./build_android/apk/lib/x86_64/libmain.so \
+    ./src/main.c ./src/android_native_app_glue.c \
+    -lm -lEGL -lGLESv2 -landroid -llog
 
 # build temporary apk and unzip back to directory
-$ANDROID_AAPT package -f -F ./build_android/temp.apk -I $ANDROID_JAR -M ./build_android/AndroidManifest.xml -S ./build_android/apk/res -v --target-sdk-version $ANDROID_VERSION
+$ANDROID_AAPT package -f -v \
+    --target-sdk-version $ANDROID_VERSION \
+    -F ./build_android/temp.apk \
+    -I $ANDROID_JAR \
+    -M ./build_android/AndroidManifest.xml \
+    -S ./build_android/apk/res
 unzip -o ./build_android/temp.apk -d ./build_android/apk
 
 # ALTERNATIVE: since aapt is deprecated, we could also use aapt2:
 #   # build temporary apk and unzip back to directory
 #   mkdir ./build_android/compiled
-#   $ANDROID_AAPT2 compile ./build_android/apk/res/mipmap/icon.png -o ./build_android/compiled/
-#   $ANDROID_AAPT2_TOOLS/aapt2 link -o ./build_android/temp.apk -I $ANDROID_JAR --manifest ./build_android/AndroidManifest.xml ./build_android/compiled/mipmap_icon.png.flat -v --target-sdk-version $ANDROID_VERSION
+#   $ANDROID_AAPT2 compile \
+#       ./build_android/apk/res/mipmap/icon.png \
+#       -o ./build_android/compiled/
+#   $ANDROID_AAPT2 link -v \
+#       --target-sdk-version $ANDROID_VERSION \
+#       -o ./build_android/temp.apk \
+#       -I $ANDROID_JAR \
+#       --manifest ./build_android/AndroidManifest.xml \
+#       ./build_android/compiled/mipmap_icon.png.flat
 #   unzip -o ./build_android/temp.apk -d ./build_android/apk
 
 # zip compress second temporary apk
@@ -55,5 +85,11 @@ zip -D0r ../temp2.apk ./resources.arsc ./AndroidManifest.xml
 cd ../..
 
 # align and sign final apk
-$ANDROID_ZIPALIGN -v 4 ./build_android/temp2.apk ./build_android/$APP_NAME.apk
-$ANDROID_APKSIGNER sign --key-pass pass:$KEY_PASS --ks-pass pass:$STORE_PASS --ks $KEYSTORE_FILE ./build_android/$APP_NAME.apk
+$ANDROID_ZIPALIGN -v 4 \
+    ./build_android/temp2.apk \
+    ./build_android/$APP_NAME.apk
+$ANDROID_APKSIGNER sign \
+    --key-pass pass:$KEY_PASS \
+    --ks-pass pass:$STORE_PASS \
+    --ks $KEYSTORE_FILE \
+    ./build_android/$APP_NAME.apk

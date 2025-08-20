@@ -11,6 +11,8 @@
     <activity android:configChanges="orientation"
         android:name="android.app.NativeActivity"
         android:exported="true">
+      <!-- main should be default, but omitting crashes aapt2 -->
+      <meta-data android:name="android.app.lib_name" android:value="main"/>
       <intent-filter>
         <action android:name="android.intent.action.MAIN"/>
         <category android:name="android.intent.category.LAUNCHER"/>
